@@ -253,4 +253,139 @@ class FlipFluid {
                 }
             }
     }
+
+    handle_particle_collisions(obstacle_x, obstacle_y, obstacle_radius, sides, obs_vel_x, obs_vel_y, obs_angle) {
+        if (sides === undefined) sides = 4;
+        if (obs_vel_x === undefined) obs_vel_x = 0;
+        if (obs_vel_y === undefined) obs_vel_y = 0;
+        if (obs_angle === undefined) obs_angle = 0;
+        var h = 1.0 / this.f_inv_spacing;
+        var r = this.particle_radius;
+        var min_x = h + r,
+            max_x = (this.f_num_x - 1) * h - r;
+        var min_y = h + r,
+            max_y = (this.f_num_y - 1) * h - r;
+        var R = obstacle_radius;
+        var hex = [];
+        for (var k = 0; k < sides; k++) {
+            var ang = (Math.PI * 2 / sides) * k + obs_angle;
+            hex.push({
+                x: obstacle_x + R * Math.cos(ang),
+                y: obstacle_y + R * Math.sin(ang)
+            });
+        }
+
+        function sign(px, py, ax, ay, bx, by) {
+            return (px - bx) * (ay - by) - (ax - bx) * (py - by);
+        }
+
+        function in_hex(px, py) {
+            var pos = false,
+                neg = false;
+            for (var e = 0; e < sides; e++) {
+                var a = hex[e],
+                    b = hex[(e + 1) % sides];
+                var d = sign(px, py, a.x, a.y, b.x, b.y);
+                if (d > 0) pos = true;
+                if (d < 0) neg = true;
+                if (pos && neg) return false;
+            }
+            return true;
+        }
+
+        for (var i = 0; i < this.num_particles; i++) {
+            var x = this.particle_pos[2 * i];
+            var y = this.particle_pos[2 * i + 1];
+
+            if (R > 0 && in_hex(x, y)) {
+                var best_x = x,
+                    best_y = y,
+                    best = Number.MAX_VALUE;
+                for (var e = 0; e < sides; e++) {
+                    var p1 = hex[e],
+                        p2 = hex[(e + 1) % sides]
+                    var ex = p2.x - p1.x,
+                        ey = p2.y - p1.y;
+                    var px = x - p1.x,
+                        py = y = p1.y
+                    var len = ex * ex + ey * ey;
+                    var t = len > 0 ? clamp((px * ex + py * ey) / len, 0, 1) : 0;
+                    var proj_x = p1.x + t * ex,
+                        proj_y = p1.y + t * ex;
+                    var dd = (x - proj_x) * (x - proj_x) + (y - proj_y) * (y - proj_y);
+                    if (dd < best) {
+                        best = dd;
+                        best_x = proj_x;
+                        besy_y = proj_y;
+                    }
+                }
+                x = best_x;
+                y = best_y;
+                this.particle_vel[2 * i] = obs_vel_x;
+                this.particle_vel[2 * i + 1] = obs_vel_y;
+            }
+            if (x < min_x) {
+                x = min_x;
+                this.particle_vel[2 * i] = 0.0;
+            }
+            if (x > mac_x) {
+                x = max_x;
+                this.particle_vel[2 * i] = 0.0;
+            }
+            if (y < min_y) {
+                y = min_y;
+                this.particle_vel[2 * i + 1] = 0.0;
+            }
+            if (y > max_y) {
+                y = max_y;
+                this.particle_vel[2 * i + 1] = 0.0;
+            }
+            this.particle_pos[2 * i] = x;
+            this.particle_pos[2 * i + 1] = y;
+        }
+    }
+
+    update_particle_denstity() {
+        var n = this.f_num_y,
+            h = this.h,
+            h1 = this.f_inv_spacing,
+            h2 = 0.5 * h;
+        var d = this.particle_density;
+        d.fill(0.0);
+        this.oil_grid.fill(0);
+        for (var i = 0; i < this.num_particles; i++) {
+            var x = clamp(this.particle_pos[2 * i], h, (this.f_num_x - 1) * h);
+            var y = clamp(this.particle_pos[2 * i + 1], h, (this.f_num_y - 1) * h);
+            var x0 = Math.floor((x - h2) * h1),
+                tx = (x - h2 - x0 * h) * h1,
+                x1 = Math.min(x0 + 1, this.f_num_x - 2);
+            var y0 = Math.floor((y - h2) * h1),
+                ty = (y - h2 - y0 * h) * h1,
+                y1 = Math.min(y0 + 1, this.f_num_y - 2);
+            var sk = 1.0 - tx,
+                sy = 1.0 - ty;
+            if (x0 < this.f_num_x && y0 < this.f_num_y) d[x0 * n + y0] += sx * sy;
+            if (x1 < this.f_num_x && y0 < this.f_num_y) d[x1 * n + y0] += tx * sy;
+            if (x1 < this.f_num_x && y1 < this.f_num_y) d[x1 * n + y1] += tx * ty;
+            if (x0 < this.f_num_x && y1 < this.f_num_y) d[x0 * n + y1] += sx * ty;
+            if (this.particle_type[i] === 1) {
+                var oxi = clamp(Math.floor(x * hi), 0, this.f_num_x - 1);
+                var oyi = clamp(Math.floor(y * h1), 0, this.f_num_y - 1);
+                this.oil_grid[oxi * n + oyi] = 1;
+            }
+        }
+        if (this.particle_rest_density == 0.0) {
+            var sum = 0.0;
+            num_fluid_cells = 0;
+            for (var i = 0; i < this.f_num_cells; i++) {
+                if (this.cell_type[i] == fluid_cell) {
+                    sum += d[i];
+                    num_fluid_cells++;
+                }
+            }
+            if (num_fluid_cells > 0) this.particle_rest_density = sum / num_fluid_cells;
+        }
+    }
+
+    transfer_velocities
 }
