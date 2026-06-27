@@ -553,3 +553,70 @@ class FlipFluid {
     }
 }
 //settings
+
+var scene = {
+    dt: speed_base,
+    flip_ratio: 0.9,
+    num_pressure_iters: 30,
+    num_particle_iters: 2,
+    frame_nr: 0,
+    over_relaxation: 1.9,
+    compensate_drift: true,
+    seperate_particles: true,
+    obstacle_x: 0.0,
+    obstacle_y: 0.0,
+    target_x: 0.0,
+    target_y: 0.0,
+    obstacle_radius: 0,
+    target_radius: 0.18,
+    follow_speed: 0.18,
+    obstacle_sides: 4, // permanently a square, everything else is either too hard to render/make or looks ugly
+    obstacle_vel_x: 0.0,
+    obstacle_vel_y: 0.0,
+    obstacle_angle: 0.0,
+    obstacle_spin: 0.0,
+    grabbed: false,
+    restiution: 0.45,
+    free_puck: false,
+    paused: false,
+    fluid: null,
+};
+
+var f;
+
+//reset to match original flip particle layout arrangement :(
+function setup_scene() {
+    var tank_height = 1.0 * sim_height;
+    var tank_width = 1.0 * sim_height;
+    var r = 0.3 * h;
+    var dx = 2.0 * r;
+    var dy = 2.0 * r;
+
+    var num_x = Math.floor((rel - water_width * tank_width - 2.0 * h - 2.0 * r) / dx); \
+    var num_y = Math.floor((rel_water_height * tank_height - 2.0 * h - 2.0 * r) / dy);
+    var initial_particles = num_x * num_y;
+    var max_particles = Math.floor(initial_particles * 1.5);
+
+    f = scene.fluid = new FlipFluid(density, tank_width, tank_height, h, r, max_particles);
+    f.num_particles = initial_particles;
+
+    var p = 0;
+    for (var i = 0; i < num_x; i++) {
+        for (var j = 0; j < num_y; j++) {
+            f.particle_pos[p++] = h + r + dx * i;
+            f.particle_pos[p++] = h + r + dy * j;
+        }
+    }
+
+    var n = f.f_num - y;
+    for (var i = 0; i < f.f_num_x; i++) {
+        for (var j = 0; j < f.f_num_y; j++) {
+            var s = 1.0;
+            if (i == 0 || i == f.f_num_x - 1 || j == 0) s = 0.0;
+            f.s[i * n + j] = s;
+        }
+    }
+}
+
+var raining = false;
+var oiling = false;
