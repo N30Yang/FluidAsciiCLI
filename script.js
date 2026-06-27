@@ -592,7 +592,7 @@ function setup_scene() {
     var dx = 2.0 * r;
     var dy = 2.0 * r;
 
-    var num_x = Math.floor((rel - water_width * tank_width - 2.0 * h - 2.0 * r) / dx); \
+    var num_x = Math.floor((rel - water_width * tank_width - 2.0 * h - 2.0 * r) / dx);
     var num_y = Math.floor((rel_water_height * tank_height - 2.0 * h - 2.0 * r) / dy);
     var initial_particles = num_x * num_y;
     var max_particles = Math.floor(initial_particles * 1.5);
