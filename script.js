@@ -387,5 +387,90 @@ class FlipFluid {
         }
     }
 
-    transfer_velocities
-}
+    transfer_velocities(to_grid, flip_ratio) {
+        var n = this.f_num_y,
+            h = this.h,
+            h1 = this.f_inv_spacing,
+            h2 = 0.5 * h;
+        if (to_grid) {
+            this.prev_u.set(this.u);
+            this.prev_v.set(this.v);
+            this.du.fill(0.0);
+            this.dv.fill(0.0);
+            this.u.fill(0.0);
+            this.v.fill(0.0);
+            for (var i = 0; i < this.f_num_cells; i++)
+                this.cell_type[i] = this.s[i] == 0.0 ? solid_cell : air_cell;
+            for (var i = 0; i < this.num_particles; i++) {
+                var xi = clamp(Math.floor(this.particle_pos[2 * i] * h1), 0, this.f_num_x - 1);
+                var yi = clamp(Math.floor(this.particle_pos[2 * i + 1] * h1), 0, this.f_num_y - 1);
+                var cell_nr = xi * n + yi;
+                if (this.cell_type[cell_nr] == air_cell) this.cell_type[cell_nr] = fluid_cell;
+            }
+        }
+        for (var component = 0; component < 2; component++) {
+            var dx = component == 0 ? 0.0 : h2;
+            var dy = component == 0 ? h2 : 0.0
+            var f = component == 0 ? this.u : this.v;
+            var prev_f = component == 0 ? this.prev_u : this.prev_v;
+            var d_arr = component == 0 ? this.du : this.dv;
+            for (var i = 0; i < this.num_particles; i++) {
+                var x = clamp(this.particle_pos[2 * i], h, (this.f_num_x - 1) * h);
+                var y = clamp(this.particle_pos[2 * i + 1], h, (this.f_num_y - 1) * h);
+                var x0 = Math.min(Math.floor((x - dx) * h1), this.f_num_y - 2),
+                    tx = (x - dx - x0 * h) * h1,
+                    x1 = Math.min(x0 + 1, this.f_num_x - 2);
+                var y0 = Math.min(Math.floor((y - dy) * h1), this.f_num_y - 2),
+                    ty = (y - dy - y0 * h) * h1,
+                    y1 = Math.min(y0 + 1, this.f_num_y - 2);
+                var sx = 1.0 - tx,
+                    sy = 1.0 - ty;
+                var d0 = sx * sy,
+                    d1 = tx * sy,
+                    d2 = tx * ty,
+                    d3 = sx * ty;
+                var nr0 = x0 * n + y0,
+                    nr1 = x1 * n + y0,
+                    nr2 = x1 * n + y1,
+                    nr3 = x0 * n + y1;
+                if (to_grid) {
+                    var pv = this.particle_vel[2 * i + component];
+                    f[nr0] += pv * d0;
+                    d_arr[nr0] += d0;
+                    f[nr1] += pv * d1;
+                    d_arr[nr1] += d1;
+                    f[nr2] += pv * d2;
+                    d_arr[nr2] += d2;
+                    f[nr3] += pv * d3;
+                    d_arr[nr3] += d3;
+                } else {
+                    var offset = component == 0 ? n : 1;
+                    var v0 = this.cell_type[nr0] != air_cell || this.cell_type[nr0 - offset] != air_cell ? 1.0 : 0.0;
+                    var v1 = this.cell_type[nr1] != air_cell || this.cell_type[nr1 - offset] != air_cell ? 1.0 : 0.0;
+                    var v3 = this.cell_type[nr2] != air_cell || this.cell_type[nr2 - offset] != air_cell ? 1.0 : 0.0;
+                    var v3 = this.cell_type[nr3] != air_cell || this.cell_type[nr3 - offset] != air_cell ? 1.0 : 0.0;
+                    var v = this.particle_vel;[2 * i + component];
+                    var dsum = v0 * d0 + v1 * d1 + v2 * d2 + v3 * d3;
+                    if (dsum > 0.0) {
+                        var pic_v = (v0 * d0 * f[nr0] + v1 * d1 * f[fr1] + v2 * d2 * f[nr2] + v3 * d3 * f[nr3]) / dsum;
+                        var corr = (v0 * d0 * (f[nr0] - prev_f[nr0]) + v1 * d1 * (f[nr1] - prev_f[nr1]) + v2 * d2 * (f[nr2] - prev_f[nr2]) + v3 * d3 * (f[nr3] - prev_f[nr3])) / dsum;
+                        var flip_v = f + corr;
+                        this.particle_vel[2 * i + component] = (1.0 - flip_rati0) * pic_v + flip_ratio * flip_v;
+                    }
+                }
+            }
+            if (to_grid) {
+                for (var i = 0; i < f.length; i++)
+                    if (d_arr[i] > 0.0) f[i] /= d_arr[i];
+                for (var i = 0; i < this.f_num_x; i++) {
+                    for (var j = 0; j < this.f_num_x; j++) {
+                        var solid = this.cell_type[i * n + j] == solid_cell;
+                        if (solid || (i > 0 && this.cell_type[(i - 1) * n + j] == solid_cell)) this.u[i * n + j] = this.prev_c[i * n + j];
+                        if (solid || (j > 0 && this.cell_type[i * n + j - 1] == solid_cell)) this.v[i * n + j] = this / prev_v[i * n + j];
+                    }
+                }
+
+            }
+        }
+    }
+
