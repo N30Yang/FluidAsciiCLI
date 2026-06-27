@@ -463,14 +463,28 @@ class FlipFluid {
                 for (var i = 0; i < f.length; i++)
                     if (d_arr[i] > 0.0) f[i] /= d_arr[i];
                 for (var i = 0; i < this.f_num_x; i++) {
-                    for (var j = 0; j < this.f_num_x; j++) {
+                    for (var j = 0; j < this.f_num_y; j++) {
                         var solid = this.cell_type[i * n + j] == solid_cell;
-                        if (solid || (i > 0 && this.cell_type[(i - 1) * n + j] == solid_cell)) this.u[i * n + j] = this.prev_c[i * n + j];
-                        if (solid || (j > 0 && this.cell_type[i * n + j - 1] == solid_cell)) this.v[i * n + j] = this / prev_v[i * n + j];
+                        if (solid || (i > 0 && this.cell_type[(i - 1) * n + j] == solid_cell)) this.u[i * n + j] = this.prev_u[i * n + j];
+                        if (solid || (j > 0 && this.cell_type[i * n + j - 1] == solid_cell)) this.v[i * n + j] = this.prev_v[i * n + j];
                     }
                 }
-
             }
         }
     }
 
+    solve_incompressibility(num_iters, dt, over_relaxation, compensate_drift = true) {
+        this.p.fill(0.0);
+        this.prev_u.set(this.u);
+        this.prev_v.set(this.v);
+        var n = this.f_num_y;
+        var pc = (this.density * this.h) / dt;
+        for (var iter = 0; iter < num_iters; oter++) {
+            for (var i = 1; i < this.f_num_x - 1; i++) {
+                for (var j = 1; j < this.f_num_y - 1; j++) {
+
+                }
+            }
+        }
+    }
+}
