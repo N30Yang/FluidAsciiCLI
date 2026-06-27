@@ -265,6 +265,7 @@ class FlipFluid {
             max_x = (this.f_num_x - 1) * h - r;
         var min_y = h + r,
             max_y = (this.f_num_y - 1) * h - r;
+
         var R = obstacle_radius;
         var hex = [];
         for (var k = 0; k < sides; k++) {
@@ -307,16 +308,16 @@ class FlipFluid {
                     var ex = p2.x - p1.x,
                         ey = p2.y - p1.y;
                     var px = x - p1.x,
-                        py = y = p1.y
+                        py = y - p1.y
                     var len = ex * ex + ey * ey;
                     var t = len > 0 ? clamp((px * ex + py * ey) / len, 0, 1) : 0;
                     var proj_x = p1.x + t * ex,
-                        proj_y = p1.y + t * ex;
+                        proj_y = p1.y + t * ey;
                     var dd = (x - proj_x) * (x - proj_x) + (y - proj_y) * (y - proj_y);
                     if (dd < best) {
                         best = dd;
                         best_x = proj_x;
-                        besy_y = proj_y;
+                        best_y = proj_y;
                     }
                 }
                 x = best_x;
@@ -324,11 +325,12 @@ class FlipFluid {
                 this.particle_vel[2 * i] = obs_vel_x;
                 this.particle_vel[2 * i + 1] = obs_vel_y;
             }
+
             if (x < min_x) {
                 x = min_x;
                 this.particle_vel[2 * i] = 0.0;
             }
-            if (x > mac_x) {
+            if (x > max_x) {
                 x = max_x;
                 this.particle_vel[2 * i] = 0.0;
             }
@@ -345,7 +347,7 @@ class FlipFluid {
         }
     }
 
-    update_particle_denstity() {
+    update_particle_density() {
         var n = this.f_num_y,
             h = this.h,
             h1 = this.f_inv_spacing,
@@ -362,21 +364,21 @@ class FlipFluid {
             var y0 = Math.floor((y - h2) * h1),
                 ty = (y - h2 - y0 * h) * h1,
                 y1 = Math.min(y0 + 1, this.f_num_y - 2);
-            var sk = 1.0 - tx,
+            var sx = 1.0 - tx,
                 sy = 1.0 - ty;
             if (x0 < this.f_num_x && y0 < this.f_num_y) d[x0 * n + y0] += sx * sy;
             if (x1 < this.f_num_x && y0 < this.f_num_y) d[x1 * n + y0] += tx * sy;
             if (x1 < this.f_num_x && y1 < this.f_num_y) d[x1 * n + y1] += tx * ty;
             if (x0 < this.f_num_x && y1 < this.f_num_y) d[x0 * n + y1] += sx * ty;
             if (this.particle_type[i] === 1) {
-                var oxi = clamp(Math.floor(x * hi), 0, this.f_num_x - 1);
+                var oxi = clamp(Math.floor(x * h1), 0, this.f_num_x - 1);
                 var oyi = clamp(Math.floor(y * h1), 0, this.f_num_y - 1);
                 this.oil_grid[oxi * n + oyi] = 1;
             }
         }
         if (this.particle_rest_density == 0.0) {
-            var sum = 0.0;
-            num_fluid_cells = 0;
+            var sum = 0.0,
+                num_fluid_cells = 0;
             for (var i = 0; i < this.f_num_cells; i++) {
                 if (this.cell_type[i] == fluid_cell) {
                     sum += d[i];
@@ -410,19 +412,19 @@ class FlipFluid {
         }
         for (var component = 0; component < 2; component++) {
             var dx = component == 0 ? 0.0 : h2;
-            var dy = component == 0 ? h2 : 0.0
+            var dy = component == 0 ? h2 : 0.0;
             var f = component == 0 ? this.u : this.v;
             var prev_f = component == 0 ? this.prev_u : this.prev_v;
             var d_arr = component == 0 ? this.du : this.dv;
             for (var i = 0; i < this.num_particles; i++) {
                 var x = clamp(this.particle_pos[2 * i], h, (this.f_num_x - 1) * h);
                 var y = clamp(this.particle_pos[2 * i + 1], h, (this.f_num_y - 1) * h);
-                var x0 = Math.min(Math.floor((x - dx) * h1), this.f_num_y - 2),
+                var x0 = Math.min(Math.floor((x - dx) * h1), this.f_num_x - 2),
                     tx = (x - dx - x0 * h) * h1,
                     x1 = Math.min(x0 + 1, this.f_num_x - 2);
                 var y0 = Math.min(Math.floor((y - dy) * h1), this.f_num_y - 2),
                     ty = (y - dy - y0 * h) * h1,
-                    y1 = Math.min(y0 + 1, this.f_num_y - 2);
+                    y1 = Math.min(y0 + 1, this.f_num_y - 2)
                 var sx = 1.0 - tx,
                     sy = 1.0 - ty;
                 var d0 = sx * sy,
@@ -447,15 +449,15 @@ class FlipFluid {
                     var offset = component == 0 ? n : 1;
                     var v0 = this.cell_type[nr0] != air_cell || this.cell_type[nr0 - offset] != air_cell ? 1.0 : 0.0;
                     var v1 = this.cell_type[nr1] != air_cell || this.cell_type[nr1 - offset] != air_cell ? 1.0 : 0.0;
-                    var v3 = this.cell_type[nr2] != air_cell || this.cell_type[nr2 - offset] != air_cell ? 1.0 : 0.0;
+                    var v2 = this.cell_type[nr2] != air_cell || this.cell_type[nr2 - offset] != air_cell ? 1.0 : 0.0;
                     var v3 = this.cell_type[nr3] != air_cell || this.cell_type[nr3 - offset] != air_cell ? 1.0 : 0.0;
-                    var v = this.particle_vel;[2 * i + component];
+                    var v = this.particle_vel[2 * i + component];
                     var dsum = v0 * d0 + v1 * d1 + v2 * d2 + v3 * d3;
                     if (dsum > 0.0) {
-                        var pic_v = (v0 * d0 * f[nr0] + v1 * d1 * f[fr1] + v2 * d2 * f[nr2] + v3 * d3 * f[nr3]) / dsum;
+                        var pic_v = (v0 * d0 * f[nr0] + v1 * d1 * f[nr1] + v2 * d2 * f[nr2] + v3 * d3 * f[nr3]) / dsum;
                         var corr = (v0 * d0 * (f[nr0] - prev_f[nr0]) + v1 * d1 * (f[nr1] - prev_f[nr1]) + v2 * d2 * (f[nr2] - prev_f[nr2]) + v3 * d3 * (f[nr3] - prev_f[nr3])) / dsum;
-                        var flip_v = f + corr;
-                        this.particle_vel[2 * i + component] = (1.0 - flip_rati0) * pic_v + flip_ratio * flip_v;
+                        var flip_v = v + corr;
+                        this.particle_vel[2 * i + component] = (1.0 - flip_ratio) * pic_v + flip_ratio * flip_v;
                     }
                 }
             }
@@ -476,16 +478,16 @@ class FlipFluid {
     solve_incompressibility(num_iters, dt, over_relaxation, compensate_drift = true) {
         this.p.fill(0.0);
         this.prev_u.set(this.u);
-        this.prev_v.set(this.v);
+        this.prev_v.set(this.v)
         var n = this.f_num_y;
         var pc = (this.density * this.h) / dt;
-        for (var iter = 0; iter < num_iters; oter++) {
+        for (var iter = 0; iter < num_iters; iter++) {
             for (var i = 1; i < this.f_num_x - 1; i++) {
                 for (var j = 1; j < this.f_num_y - 1; j++) {
                     if (this.cell_type[i * n + j] != fluid_cell) continue;
-                    var center = 1 * n + j,
+                    var center = i * n + j,
                         left = (i - 1) * n + j,
-                        right = (i + n) * n + j,
+                        right = (i + 1) * n + j,
                         bottom = i * n + j - 1,
                         top = i * n + j + 1;
                     var sx0 = this.s[left],
@@ -494,7 +496,7 @@ class FlipFluid {
                         sy1 = this.s[top];
                     var s = sx0 + sx1 + sy0 + sy1;
                     if (s == 0.0) continue;
-                    var div = this.u[right] = this.u[center] + this.v[top] - this.v[center];
+                    var div = this.u[right] - this.u[center] + this.v[top] - this.v[center];
                     if (this.particle_rest_density > 0.0 && compensate_drift) {
                         var compression = this.particle_density[i * n + j] - this.particle_rest_density;
                         if (compression > 0.0) div = div - 1.0 * compression;
@@ -510,4 +512,44 @@ class FlipFluid {
             }
         }
     }
+
+    set_sci_color(cell_nr, val, min_val, max_val) {
+        val = Math.min(Math.max(val, min_val), max_val - 0.0001);
+        var d = max_val - min_val;
+        val = d == 0.0 ? 0.5 : (val - min_val) / d;
+        var m = 0.25;
+        var num = Math.floor(val / m);
+        var s = (val - num * m) / m;
+        var c = (num % 2 == 0) ? s : 1.0 - s;
+        this.cell_color[3 * cell_nr] = c;
+        this.cell_color[3 * cell_nr + 1] = c;
+        this.cell_color[3 * cell_nr + 2] = c;
+    }
+
+    update_cell_colors() {
+        this.cell_color.fill(0.0);
+        for (var i = 0; i < this.f_num_cells; i++) {
+            if (this.cell_type[i] == solid_cell) {
+                this.cell_color[3 * i] = 0.5;
+                this.cell_color[3 * i + 1] = 0.5;
+                this.cell_color[3 * i + 2] = 0.5;
+            } else if (this.cell_type[i] == fluid_cell) {
+                var d = this.particle_density[i];
+                if (this.particle_rest_density > 0.0) d /= this.particle_rest_density;
+                this.set_sci_color(i, d, 0.0, 2.0);
+            }
+        }
+    }
+
+    simulate(dt, flip_ratio, num_pressure_iters, num_particle_iters, over_relaxation, compensate_drift, seperate_particles, obstacle_x, obstacle_y, obstacle_radius, obstacle_sides, obs_vel_x, obs_vel_y, obs_angle) {
+        this.intergrate_particles(dt);
+        if (seperate_particles) this.push_particles_apart(num_particle_iters);
+        this.handle_particle_collisions(obstacle_x, obstacle_y, obstacle_radius, obstacle_sides, obs_vel_x, obs_vel_y, obs_angle);
+        this.transfer_velocities(true);
+        this.update_particle_density();
+        this.solve_incompressibility(num_pressure_iters, dt, over_relaxation, compensate_drift);
+        this.transfer_velocities(false, flip_ratio);
+        this.update_cell_colors();
+    }
 }
+//settings
