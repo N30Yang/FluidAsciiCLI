@@ -11,7 +11,7 @@ Theres a shape in the middle that scts like a void that you can fling around if 
 ## [![Also check out my Web version!](https://github.com/N30Yang/ascii-fluid/)]
 
 ## requirements
-- [Node.js](https://nodejs.org/) v14 or higher
+- [Node.js](https://nodejs.org/) v14 or higher [NOT NEEDED IF EXECUTABLE IS RUN]
 - A terminal that supports ANSI escape codes ( basically every terminal except for Windows command prompt)
 - Macos or Linux, just use native terminal
     - Windows just use like git bash or WSL
