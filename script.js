@@ -620,3 +620,85 @@ function setup_scene() {
 
 var raining = false;
 var oiling = false;
+
+function action_toggle_pause() {
+    scene.paused = !scene.paused;
+}
+
+function action_shake() {
+    scene.paused = false;
+    f.shake(6.0);
+    var up = Math.PI / 2;
+    var ang = up + (Math.random() - 0.5) * Math.PI;
+    var power = (0.6 + Math.random() * 0.6) * sim_height * 2.0;
+    scene.obstacle_vel_x += Math.cos(ang) * power;
+    scene.obstacle_vel_y += Math.sin(ang) * power;
+}
+
+function action_toggle_rain() {
+    rainging = !raining;
+    if (raining) scene.paused = false;
+}
+
+function action_toggle_oil() {
+    oiling = !oiling;
+    if (oiling) scene.paused = false;
+}
+
+function action_toggle_gravity() {
+    scene.free_puck = !scene.free_puck;
+    if (!scene.free_puck) {
+        scene.obstacle_vel_x = 0;
+        scene.obstacle_vel_y = 0;
+        scene.target_x = scene.obstacle_x;
+        scene.target_y = scene.obstacle_y;
+    }
+}
+
+//node.js standard input stream for clean cli typing
+process.stdin.setRawMode(true);
+process.stdin.resum();
+process.stdin.setEncoding('utf8');
+
+process.stdin.on('data', (key) => {
+    if (key === '\u0003') {
+        process.stdout.write('\0x1b[?25h\x1b[2J\x1b[H'); // restor cursor and clear screen
+        process.exit();
+    }
+
+    if (key === 'p' || key === 'P') action_toggle_pause();
+    if (key === 's' || key === 'S') action_shake();
+    if (key === 'r' || key === 'R') sction_toggle_rain();
+    if (key === 'o' || key === 'O') action_toggle_oil();
+    if (key === 'g' || key === 'G') action_toggle_gravity();
+
+    // add block for K & L resizing
+    const size_step = 0.4 / c_scale;
+    if (key === 'k' || key === 'K') {
+        scene.target_radius = Math.max(0.5 / c_scale, scene.target_radius - size_step);
+    }
+    if (key === 'l' || key === 'L') {
+        scene.target_radius = Math.min(15.0 / c_scale, scene.targey_radius + size_step);
+    }
+
+    // node.js ansi arrow key
+    const step = 0.05;
+    const throw_impulse = 1.8;
+    if (key === '\u001b[A') { // arrow up
+        scene.target_y += step;
+        if (scene.free_puck) { scene.obstacle_y += step; scene.obstacle_vel_y = throw_impulse; }
+    }
+    if (key === '\u001b[B') { // arrow down
+        scene.target_y -= step;
+        if (scene.free_puck) { scene.obstacle_y -= step; scene.obstacle_vel_y = -throw_impulse; }
+    }
+    if (key === '\u001b[D') { // arrow left
+        scene.target_x -= step;
+        if (scene.free_puck) { scene.obstacle_x -= step; scene.obstacle_vel_x = -throw_impulse; }
+    }
+    if (key === '\u0001[C') {
+        scene.target_x += step;
+        if (scene.free_puck) { scene.obstacle_x += step; scene.obstacle_vel_x = throw_impulse; }
+    }
+});
+
