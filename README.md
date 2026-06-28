@@ -11,16 +11,18 @@ Theres a shape in the middle that scts like a void that you can fling around if 
 ## [![Also check out my Web version!](https://github.com/N30Yang/ascii-fluid/)]
 
 ## requirements
-- [Node.js](https://nodejs.org/) v14 or higher
+- [Node.js](https://nodejs.org/) v14 or higher [NOT NEEDED IF EXECUTABLE IS RUN]
 - A terminal that supports ANSI escape codes ( basically every terminal except for Windows command prompt)
 - Macos or Linux, just use native terminal
     - Windows just use like git bash or WSL
 
 # how to run
-'''bash
+''' bash
 node index.js
 '''
+
 Or just run the executable
+
 Make sure you are in the directory for this project in your terminal using 'cd'
 Also make sure it is a decent size to make it has higher resolution
 
@@ -43,6 +45,9 @@ Just resize the actual window of the terminal while it's running, the fluid will
 Genuinely just one file:
 - 'index.js'
 Nothing else
+
+## Ai Disclosure
+Ai was used for bugfixing and teaching use of node, no actual code was generated, only guidence.
 
 ## credit
 backbone of the original is Matthias Müller's "Ten Minute Physics" tutorial #18, which I've changed so much just look at the og repo. I rewrote basically everything: the ASCII renderer, shake, resizing, oil, rain, puck, and pausing. this repo is a Rewrite of an overhaul so it's quite different
