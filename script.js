@@ -576,7 +576,7 @@ var scene = {
     obstacle_angle: 0.0,
     obstacle_spin: 0.0,
     grabbed: false,
-    restiution: 0.45,
+    restitution: 0.45,
     free_puck: false,
     paused: false,
     fluid: null,
@@ -587,16 +587,16 @@ var f;
 //reset to match original flip particle layout arrangement :(
 function setup_scene() {
     var tank_height = 1.0 * sim_height;
-    var tank_width = 1.0 * sim_height;
+    var tank_width = 1.0 * sim_width;
+    var h = tank_height / real_height;
     var r = 0.3 * h;
     var dx = 2.0 * r;
     var dy = 2.0 * r;
-    var h = tank_height / real_height;
     var density = 1000.0;
     var rel_water_height = 0.8;
-    var rel_water_wdith = 0.6;
+    var rel_water_width = 0.6;
 
-    var num_x = Math.floor((rel - water_width * tank_width - 2.0 * h - 2.0 * r) / dx);
+    var num_x = Math.floor((rel_water_width * tank_width - 2.0 * h - 2.0 * r) / dx);
     var num_y = Math.floor((rel_water_height * tank_height - 2.0 * h - 2.0 * r) / dy);
     var initial_particles = num_x * num_y;
     var max_particles = Math.floor(initial_particles * 1.5);
@@ -612,7 +612,7 @@ function setup_scene() {
         }
     }
 
-    var n = f.f_num - y;
+    var n = f.f_num_y;
     for (var i = 0; i < f.f_num_x; i++) {
         for (var j = 0; j < f.f_num_y; j++) {
             var s = 1.0;
@@ -640,7 +640,7 @@ function action_shake() {
 }
 
 function action_toggle_rain() {
-    rainging = !raining;
+    raining = !raining;
     if (raining) scene.paused = false;
 }
 
@@ -666,13 +666,13 @@ process.stdin.setEncoding('utf8');
 
 process.stdin.on('data', (key) => {
     if (key === '\u0003') {
-        process.stdout.write('\0x1b[?25h\x1b[2J\x1b[H'); // restor cursor and clear screen
+        process.stdout.write('\x1b[?25h\x1b[2J\x1b[H'); // restor cursor and clear screen
         process.exit();
     }
 
     if (key === 'p' || key === 'P') action_toggle_pause();
     if (key === 's' || key === 'S') action_shake();
-    if (key === 'r' || key === 'R') sction_toggle_rain();
+    if (key === 'r' || key === 'R') action_toggle_rain();
     if (key === 'o' || key === 'O') action_toggle_oil();
     if (key === 'g' || key === 'G') action_toggle_gravity();
 
@@ -682,7 +682,7 @@ process.stdin.on('data', (key) => {
         scene.target_radius = Math.max(0.5 / c_scale, scene.target_radius - size_step);
     }
     if (key === 'l' || key === 'L') {
-        scene.target_radius = Math.min(15.0 / c_scale, scene.targey_radius + size_step);
+        scene.target_radius = Math.min(15.0 / c_scale, scene.target_radius + size_step);
     }
 
     // node.js ansi arrow key
@@ -700,7 +700,7 @@ process.stdin.on('data', (key) => {
         scene.target_x -= step;
         if (scene.free_puck) { scene.obstacle_x -= step; scene.obstacle_vel_x = -throw_impulse; }
     }
-    if (key === '\u0001[C') {
+    if (key === '\u001b[C') { //arrow right
         scene.target_x += step;
         if (scene.free_puck) { scene.obstacle_x += step; scene.obstacle_vel_x = throw_impulse; }
     }
@@ -720,8 +720,8 @@ function resize_simulation() {
     setup_scene();
     scene.target_radius = 3.5 / c_scale;
 
-    var center_x = ((cell_crop_x + (f.f_num_x - cell - crop_x)) / 2) * f.h;
-    var center_y = ((cell_crop_y + (f.f_num_y - cell - rop_y)) / 2) * f.h;
+    var center_x = ((cell_crop_x + (f.f_num_x - cell_crop_x)) / 2) * f.h;
+    var center_y = ((cell_crop_y + (f.f_num_y - cell_crop_y)) / 2) * f.h;
     scene.obstacle_x = center_x;
     scene.obstacle_y = center_y;
     scene.target_x = center_x;
@@ -752,8 +752,8 @@ function update() {
 
     if (!scene.free_puck) {
         scene.obstacle_x += (scene.target_x - scene.obstacle_x) * scene.follow_speed;
-        scene.obstacle_y += (scene.target_y - scene.onstacle_y) + scene.follow_speed;
-    } else if (scene.grabbed && !scene.paused) {
+        scene.obstacle_y += (scene.target_y - scene.obstacle_y) * scene.follow_speed;
+    } else if (!scene.grabbed && !scene.paused) {
         var puck_dt = scene.dt * 4.0;
         scene.obstacle_vel_y += gravity * 0.15 * puck_dt;
         scene.obstacle_vel_x *= 0.995;
@@ -764,11 +764,11 @@ function update() {
         var R = scene.obstacle_radius * Math.cos(Math.PI / scene.obstacle_sides);
         var lo_x = R, hi_x = sim_width - R;
         var lo_y = R, hi_y = sim_height - R;
-        if (scene.obsatcle_x < lo_x) { scene.obstacle_x = lo_x; scene.obstacle_vel_x = - scene.obstacle_vel_x * scene.restiution; }
-        if (scene.obsatcle_x > hi_x) { scene.obstacle_x = hi_x; scene.obstacle_vel_x = - scene.obstacle_vel_x * scene.restiution; }
-        if (scene.obsatcle_y < lo_y) { scene.obstacle_y = lo_y; scene.obstacle_vel_y = - scene.obstacle_vel_y * scene.restiution; }
-        if (scene.obsatcle_y > hi_y) { scene.obstacle_y = hi_y; scene.obstacle_vel_y = - scene.obstacle_vel_y * scene.restiution; }
-        scene.obstacle_spin = sene.obstacle_vel_x * 0.03;
+        if (scene.obstacle_x < lo_x) { scene.obstacle_x = lo_x; scene.obstacle_vel_x = - scene.obstacle_vel_x * scene.restitution; }
+        if (scene.obstacle_x > hi_x) { scene.obstacle_x = hi_x; scene.obstacle_vel_x = - scene.obstacle_vel_x * scene.restitution; }
+        if (scene.obstacle_y < lo_y) { scene.obstacle_y = lo_y; scene.obstacle_vel_y = - scene.obstacle_vel_y * scene.restitution; }
+        if (scene.obstacle_y > hi_y) { scene.obstacle_y = hi_y; scene.obstacle_vel_y = - scene.obstacle_vel_y * scene.restitution; }
+        scene.obstacle_spin = scene.obstacle_vel_x * 0.03;
         scene.obstacle_angle += scene.obstacle_spin;
     }
 
@@ -782,7 +782,7 @@ function update() {
     }
 
     if (oiling && !scene.paused) {
-        var oilx = (0.2 * Math.random() * 0.6) * sim_width;
+        var oilx = (0.2 + Math.random() * 0.6) * sim_width;
         var oily = sim_height * 0.85;
         f.spawn_at(oilx, oily, 12, 1);
     }
@@ -790,8 +790,8 @@ function update() {
     var oil_open = false;
     for (let i = f.f_num_y - cell_crop_y; i > cell_crop_y; i--) {
         let row = "";
-        for (let j = cell - crop_x; j < f.f_num_x - cell_crop_x; j++) {
-            const idx = j * f.f_num - y + i;
+        for (let j = cell_crop_x; j < f.f_num_x - cell_crop_x; j++) {
+            const idx = j * f.f_num_y + i;
             const cell_color = f.cell_color[3 * idx];
             const is_oil = f.oil_grid[idx];
             let ramp;
