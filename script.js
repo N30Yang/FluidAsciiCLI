@@ -591,6 +591,10 @@ function setup_scene() {
     var r = 0.3 * h;
     var dx = 2.0 * r;
     var dy = 2.0 * r;
+    var h = tank_height / real_height;
+    var density = 1000.0;
+    var rel_water_height = 0.8;
+    var rel_water_wdith = 0.6;
 
     var num_x = Math.floor((rel - water_width * tank_width - 2.0 * h - 2.0 * r) / dx);
     var num_y = Math.floor((rel_water_height * tank_height - 2.0 * h - 2.0 * r) / dy);
