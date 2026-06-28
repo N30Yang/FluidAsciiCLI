@@ -18,8 +18,9 @@ Theres a shape in the middle that scts like a void that you can fling around if 
 
 # how to run
 '''bash
-node script.js
+node index.js
 '''
+Or just run the executable
 Make sure you are in the directory for this project in your terminal using 'cd'
 Also make sure it is a decent size to make it has higher resolution
 
@@ -40,7 +41,7 @@ Just resize the actual window of the terminal while it's running, the fluid will
 
 ## The stack
 Genuinely just one file:
-- 'script.js'
+- 'index.js'
 Nothing else
 
 ## credit
