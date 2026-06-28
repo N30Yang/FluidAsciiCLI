@@ -46,6 +46,9 @@ Genuinely just one file:
 - 'index.js'
 Nothing else
 
+## Ai Disclosure
+Ai was used for bugfixing and teaching use of node, no actual code was generated, only guidence.
+
 ## credit
 backbone of the original is Matthias Müller's "Ten Minute Physics" tutorial #18, which I've changed so much just look at the og repo. I rewrote basically everything: the ASCII renderer, shake, resizing, oil, rain, puck, and pausing. this repo is a Rewrite of an overhaul so it's quite different
 Still keeping the credit + license here and in script.js:
