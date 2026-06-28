@@ -593,8 +593,8 @@ function setup_scene() {
     var dx = 2.0 * r;
     var dy = 2.0 * r;
     var density = 1000.0;
-    var rel_water_height = 0.8;
-    var rel_water_width = 0.6;
+    var rel_water_height = 0.4;
+    var rel_water_width = 0.3;
 
     var num_x = Math.floor((rel_water_width * tank_width - 2.0 * h - 2.0 * r) / dx);
     var num_y = Math.floor((rel_water_height * tank_height - 2.0 * h - 2.0 * r) / dy);
@@ -706,9 +706,44 @@ process.stdin.on('data', (key) => {
     }
 });
 
+
+function setup_scene_grid_only() {
+    var tank_height = 1.0 * sim_height;
+    var tank_width = 1.0 * sim_width;
+    var h = tank_height / real_height;
+    var density = 1000.0;
+    var r = 0.3 * h;
+
+    var saved_pos = f.particle_pos.slice();
+    var saved_vel = f.particle_vel.slice();
+    var saved_type = f.particle_type.slice();
+    var saved_color = f.particle_color.slice();
+    var saved_count = f.num_particles;
+    var max_p = Math.max(f.max_particles, Math.floor(saved_count * 1.5));
+
+    f = scene.fluid = new FlipFluid(density, tank_width, tank_height, h, r, max_p);
+    f.num_particles = saved_count;
+    f.particle_pos.set(saved_pos.subarray(0, 2 * saved_count));
+    f.particle_vel.set(saved_vel.subarray(0, 2 * saved_count));
+    f.particle_type.set(saved_type.subarray(0, saved_count));
+    f.particle_color.set(saved_color.subarray(0, 3 * saved_count));
+
+    var n = f.f_num_y;
+    for (var i = 0; i < f.f_num_x; i++) {
+        for (var j = 0; j < f.f_num_y; j++) {
+            var s = 1.0;
+            if (i == 0 || i == f.f_num_x - 1 || j == 0) s = 0.0;
+            f.s[i * n + j] = s;
+        }
+    }
+}
+
 function resize_simulation() {
     let cols = process.stdout.columns || 80;
     let rows = (process.stdout.rows || 24) - 2;
+
+    let prev_width = sim_width;
+    let prev_height = sim_height;
     grid_size = 1;
     real_width = cols + cell_crop_x * 2;
     real_height = rows + cell_crop_y * 2;
@@ -717,19 +752,58 @@ function resize_simulation() {
     c_scale = real_height / sim_height;
     sim_width = real_width / c_scale;
 
-    setup_scene();
-    scene.target_radius = 3.5 / c_scale;
-
-    var center_x = ((cell_crop_x + (f.f_num_x - cell_crop_x)) / 2) * f.h;
-    var center_y = ((cell_crop_y + (f.f_num_y - cell_crop_y)) / 2) * f.h;
-    scene.obstacle_x = center_x;
-    scene.obstacle_y = center_y;
-    scene.target_x = center_x;
-    scene.target_y = center_y;
-    scene.obstacle_vel_x = 0;
-    scene.obstacle_vel_y = 0;
-
+    if (!f) {
+        setup_scene();
+        scene.target_radius = 8.75 / c_scale;
+        var center_x = ((cell_crop_x + (f.f_num_x - cell_crop_x)) / 2) * f.h;
+        var center_y = ((cell_crop_y + (f.f_num_y - cell_crop_y)) / 2) * f.h;
+        scene.obstacle_x = center_x;
+        scene.obstacle_y = center_y;
+        scene.target_x = center_x;
+        scene.target_y = center_y;
+        scene.obstacle_vel_x = 0;
+        scene.obstacle_vel_y = 0;
+    } else {
+        var scale_x = sim_width / prev_width;
+        var scale_y = sim_height / prev_height;
+        for (var i = 0; i < f.num_particles; i++) {
+            f.particle_pos[2 * i] *= scale_x;
+            f.particle_pos[2 * i + 1] *= scale_y;
+        }
+        scene.obstacle_x *= scale_x;
+        scene.obstacle_y *= scale_y;
+        scene.target_x *= scale_x;
+        scene.target_y *= scale_y;
+        scene.target_radius = scene.target_radius * scale_x;
+        scene.obstacle_radius = scene.obstacle_radius * scale_x;
+        setup_scene_grid_only();
+    }
     process.stdout.write('\x1b[2J');
+    // legacy code, resets everytime, new ones is live
+    //    let cols = process.stdout.columns || 80;
+    //    let rows = (process.stdout.rows || 24) - 2;
+    //    grid_size = 1;
+    //    real_width = cols + cell_crop_x * 2;
+    //    real_height = rows + cell_crop_y * 2;
+    //    y_resolution = real_height;
+    //    resolution = y_resolution;
+    //    c_scale = real_height / sim_height;
+    //    sim_width = real_width / c_scale;
+
+    //    setup_scene();
+    //    scene.target_radius = 8.75 / c_scale;
+    //
+    //    var center_x = ((cell_crop_x + (f.f_num_x - cell_crop_x)) / 2) * f.h;
+    //    var center_y = ((cell_crop_y + (f.f_num_y - cell_crop_y)) / 2) * f.h;
+    //    scene.obstacle_x = center_x;
+    //    scene.obstacle_y = center_y;
+    //    scene.target_x = center_x;
+    //    scene.target_y = center_y;
+    //    scene.obstacle_vel_x = 0;
+    //    scene.obstacle_vel_y = 0;
+    //
+    //    process.stdout.write('\x1b[2J');
+
 }
 
 process.stdout.on('resize', resize_simulation);
