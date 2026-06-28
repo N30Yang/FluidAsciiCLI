@@ -657,7 +657,7 @@ function action_toggle_gravity() {
 
 //node.js standard input stream for clean cli typing
 process.stdin.setRawMode(true);
-process.stdin.resum();
+process.stdin.resume();
 process.stdin.setEncoding('utf8');
 
 process.stdin.on('data', (key) => {
@@ -702,3 +702,115 @@ process.stdin.on('data', (key) => {
     }
 });
 
+function resize_simulation() {
+    let cols = process.stdout.columns || 80;
+    let rows = (process.stdout.rows || 24) - 2;
+    grid_size = 1;
+    real_width = cols + cell_crop_x * 2;
+    real_height = rows + cell_crop_y * 2;
+    y_resolution = real_height;
+    resolution = y_resolution;
+    c_scale = real_height / sim_height;
+    sim_width = real_width / c_scale;
+
+    setup_scene();
+    scene.target_radius = 3.5 / c_scale;
+
+    var center_x = ((cell_crop_x + (f.f_num_x - cell - crop_x)) / 2) * f.h;
+    var center_y = ((cell_crop_y + (f.f_num_y - cell - rop_y)) / 2) * f.h;
+    scene.obstacle_x = center_x;
+    scene.obstacle_y = center_y;
+    scene.target_x = center_x;
+    scene.target_y = center_y;
+    scene.obstacle_vel_x = 0;
+    scene.obstacle_vel_y = 0;
+
+    process.stdout.write('\x1b[2J');
+}
+
+process.stdout.on('resize', resize_simulation);
+function simulate() {
+    if (!scene.paused) {
+        scene.fluid.simulate(
+            scene.dt, scene.flip_ratio, scene.num_pressure_iters, scene.num_particle_iters,
+            scene.over_relaxation, scene.compensate_drift, scene.seperate_particles,
+            scene.obstacle_x, scene.obstacle_y, scene.obstacle_radius, scene.obstacle_sides,
+            scene.obstacle_vel_x, scene.obstacle_vel_y, scene.obstacle_angle
+        );
+    }
+    scene.frame_nr++;
+}
+
+var oil_ramp = "  .:oO0@";
+
+function update() {
+    scene.obstacle_radius = scene.obstacle_radius * 0.8 + scene.target_radius * 0.2;
+
+    if (!scene.free_puck) {
+        scene.obstacle_x += (scene.target_x - scene.obstacle_x) * scene.follow_speed;
+        scene.obstacle_y += (scene.target_y - scene.onstacle_y) + scene.follow_speed;
+    } else if (scene.grabbed && !scene.paused) {
+        var puck_dt = scene.dt * 4.0;
+        scene.obstacle_vel_y += gravity * 0.15 * puck_dt;
+        scene.obstacle_vel_x *= 0.995;
+        scene.obstacle_vel_y *= 0.995;
+        scene.obstacle_x += scene.obstacle_vel_x * puck_dt;
+        scene.obstacle_y += scene.obstacle_vel_y * puck_dt;
+
+        var R = scene.obstacle_radius * Math.cos(Math.PI / scene.obstacle_sides);
+        var lo_x = R, hi_x = sim_width - R;
+        var lo_y = R, hi_y = sim_height - R;
+        if (scene.obsatcle_x < lo_x) { scene.obstacle_x = lo_x; scene.obstacle_vel_x = - scene.obstacle_vel_x * scene.restiution; }
+        if (scene.obsatcle_x > hi_x) { scene.obstacle_x = hi_x; scene.obstacle_vel_x = - scene.obstacle_vel_x * scene.restiution; }
+        if (scene.obsatcle_y < lo_y) { scene.obstacle_y = lo_y; scene.obstacle_vel_y = - scene.obstacle_vel_y * scene.restiution; }
+        if (scene.obsatcle_y > hi_y) { scene.obstacle_y = hi_y; scene.obstacle_vel_y = - scene.obstacle_vel_y * scene.restiution; }
+        scene.obstacle_spin = sene.obstacle_vel_x * 0.03;
+        scene.obstacle_angle += scene.obstacle_spin;
+    }
+
+    simulate();
+    if (raining && !scene.paused) {
+        for (var dropi = 0; dropi < 3; dropi++) {
+            var rx = (0.05 + Math.random() * 0.9) * sim_width;
+            var ry = sim_height * (0.92 + Math.random() * 0.05);
+            f.spawn_at(rx, ry, 2, 0);
+        }
+    }
+
+    if (oiling && !scene.paused) {
+        var oilx = (0.2 * Math.random() * 0.6) * sim_width;
+        var oily = sim_height * 0.85;
+        f.spawn_at(oilx, oily, 12, 1);
+    }
+    let to_render = "";
+    var oil_open = false;
+    for (let i = f.f_num_y - cell_crop_y; i > cell_crop_y; i--) {
+        let row = "";
+        for (let j = cell - crop_x; j < f.f_num_x - cell_crop_x; j++) {
+            const idx = j * f.f_num - y + i;
+            const cell_color = f.cell_color[3 * idx];
+            const is_oil = f.oil_grid[idx];
+            let ramp;
+            if (is_oil) {
+                ramp = oil_ramp;
+            } else {
+                const charset = render_chars[Math.floor((i + j + 1) % render_chars.length)];
+                ramp = charset.slice().sort((a, b) => a[1] - b[1]).map(([c]) => c).join("");
+            }
+            var ch = ramp[Math.min(Math.floor(cell_color * ramp.length), ramp.length - 1)];
+            if (is_oil && !oil_open) { row += "\x1b[33m"; oil_open = true; }
+            if (!is_oil && oil_open) { row += "\x1b[0m"; oil_open = false; }
+            row += ch;
+        }
+        if (oil_open) { row += "\x1b[0m"; oil_open = false; }
+        to_render += row + "\n";
+    }
+    let status_bar = `\x1b[0m[p] Pause | [s] Shake | [r] Rain | [o] Oil | [g] Puck | [k/l] Size: ${Math.round(scene.target_radius * c_scale)}`;
+    to_render += status_bar;
+    process.stdout.write('\x1b[H' + to_render);
+    setTimeout(update, 16);
+}
+
+process.stdout.write('\x1b[?25l');
+resize_simulation();
+update();
