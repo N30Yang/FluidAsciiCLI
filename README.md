@@ -17,9 +17,10 @@ Theres a shape in the middle that scts like a void that you can fling around if 
     - Windows just use like git bash or WSL
 
 # how to run
-'''bash
+''' bash
 node index.js
 '''
+
 Or just run the executable
 Make sure you are in the directory for this project in your terminal using 'cd'
 Also make sure it is a decent size to make it has higher resolution
