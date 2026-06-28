@@ -569,6 +569,7 @@ var scene = {
     target_y: 0.0,
     obstacle_radius: 0,
     target_radius: 0.18,
+    target_size: 9,
     follow_speed: 0.18,
     obstacle_sides: 4, // permanently a square, everything else is either too hard to render/make or looks ugly
     obstacle_vel_x: 0.0,
@@ -677,12 +678,13 @@ process.stdin.on('data', (key) => {
     if (key === 'g' || key === 'G') action_toggle_gravity();
 
     // add block for K & L resizing
-    const size_step = 0.4 / c_scale;
     if (key === 'k' || key === 'K') {
-        scene.target_radius = Math.max(0.5 / c_scale, scene.target_radius - size_step);
+        scene.target_size = Math.max(1, scene.target_size - 1);
+        scene.target_radius = scene.target_size / c_scale;
     }
     if (key === 'l' || key === 'L') {
-        scene.target_radius = Math.min(15.0 / c_scale, scene.target_radius + size_step);
+        scene.target_size = Math.min(15, scene.target_size + 1);
+        scene.target_radius = scene.target_size / c_scale;
     }
 
     // node.js ansi arrow key
@@ -754,7 +756,8 @@ function resize_simulation() {
 
     if (!f) {
         setup_scene();
-        scene.target_radius = 8.75 / c_scale;
+        scene.target_size = scene.target_size ?? 9;
+        scene.target_radius = scene.target_size / c_scale;
         var center_x = ((cell_crop_x + (f.f_num_x - cell_crop_x)) / 2) * f.h;
         var center_y = ((cell_crop_y + (f.f_num_y - cell_crop_y)) / 2) * f.h;
         scene.obstacle_x = center_x;
@@ -774,7 +777,7 @@ function resize_simulation() {
         scene.obstacle_y *= scale_y;
         scene.target_x *= scale_x;
         scene.target_y *= scale_y;
-        scene.target_radius = scene.target_radius * scale_x;
+        scene.target_radius = scene.target_size / c_scale;
         scene.obstacle_radius = scene.obstacle_radius * scale_x;
         setup_scene_grid_only();
     }
@@ -883,7 +886,7 @@ function update() {
         if (oil_open) { row += "\x1b[0m"; oil_open = false; }
         to_render += row + "\n";
     }
-    let status_bar = `\x1b[0m[p] Pause | [s] Shake |[arrow keys] Move | [r] Rain | [o] Oil | [g] Puck | [k/l] Size: ${Math.round(scene.target_radius * c_scale)}`;
+    let status_bar = `\x1b[0m[p] Pause | [s] Shake | [arrow keys] Move | [r] Rain | [o] Oil | [g] Puck | [k/l] Size: ${String(scene.target_size).padStart(2, ' ')}`;
     to_render += status_bar;
     process.stdout.write('\x1b[H' + to_render);
     setTimeout(update, 16);
@@ -893,13 +896,3 @@ process.stdout.write('\x1b[?25l');
 resize_simulation();
 update();
 
-const readline = require('readline');
-
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
-
-rl.question('\nPress Enter to exit...', () => {
-    rl.close();
-});
