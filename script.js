@@ -599,7 +599,7 @@ function setup_scene() {
     var num_x = Math.floor((rel_water_width * tank_width - 2.0 * h - 2.0 * r) / dx);
     var num_y = Math.floor((rel_water_height * tank_height - 2.0 * h - 2.0 * r) / dy);
     var initial_particles = num_x * num_y;
-    var max_particles = Math.floor(initial_particles * 1.5);
+    var max_particles = Math.floor(initial_particles * 4.0);
 
     f = scene.fluid = new FlipFluid(density, tank_width, tank_height, h, r, max_particles);
     f.num_particles = initial_particles;
@@ -719,7 +719,7 @@ function setup_scene_grid_only() {
     var saved_type = f.particle_type.slice();
     var saved_color = f.particle_color.slice();
     var saved_count = f.num_particles;
-    var max_p = Math.max(f.max_particles, Math.floor(saved_count * 1.5));
+    var max_p = Math.max(f.max_particles, Math.floor(saved_count * 4.0));
 
     f = scene.fluid = new FlipFluid(density, tank_width, tank_height, h, r, max_p);
     f.num_particles = saved_count;
@@ -883,7 +883,7 @@ function update() {
         if (oil_open) { row += "\x1b[0m"; oil_open = false; }
         to_render += row + "\n";
     }
-    let status_bar = `\x1b[0m[p] Pause | [s] Shake | [r] Rain | [o] Oil | [g] Puck | [k/l] Size: ${Math.round(scene.target_radius * c_scale)}`;
+    let status_bar = `\x1b[0m[p] Pause | [s] Shake |[arrow keys] Move | [r] Rain | [o] Oil | [g] Puck | [k/l] Size: ${Math.round(scene.target_radius * c_scale)}`;
     to_render += status_bar;
     process.stdout.write('\x1b[H' + to_render);
     setTimeout(update, 16);
