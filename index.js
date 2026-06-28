@@ -892,3 +892,14 @@ function update() {
 process.stdout.write('\x1b[?25l');
 resize_simulation();
 update();
+
+const readline = require('readline');
+
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
+
+rl.question('\nPress Enter to exit...', () => {
+    rl.close();
+});

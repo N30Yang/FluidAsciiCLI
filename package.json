@@ -1,7 +1,7 @@
 {
-  "name": "screencasts",
+  "name": "LiquidAscii",
   "version": "1.0.0",
-  "description": "Your project description here",
+  "description": "LiquidAscii by Neo Yang",
   "main": "index.js",
   "bin": "index.js",
   "pkg": {
